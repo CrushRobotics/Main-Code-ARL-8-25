@@ -1,5 +1,11 @@
 package frc.robot.commands;
 
-public class ElevatorCommand {
+import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.subsystems.CANElevatorSubsystem;
+
+
+public class ElevatorCommand extends Command {
+    private final CANElevatorSubsystem ElevatorSubsystem;
+
     
 }

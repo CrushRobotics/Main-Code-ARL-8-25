@@ -1,11 +1,13 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.SparkMax;
+
 import com.revrobotics.RelativeEncoder;
-import com.revrobotics.config.BaseConfig;
+import com.revrobotics.servohub.ServoHub.ResetMode;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -55,7 +57,12 @@ public class CANElevatorSubsystem extends SubsystemBase {
 
         rightElevatorConfig.follow(leftElevatorMotor, true);
 
+        rightElevatorMotor.configure(rightElevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+
         encoder = leftElevatorMotor.getEncoder();
+
+        
 
         // When the match starts we should assume that the elevator is either at the
         // minimum or the maximum position and reset the encoder accordingly. 
@@ -84,99 +91,104 @@ public class CANElevatorSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Elevator Position", encoder.getPosition());
     }
 
+    public void raise() 
+    {
+        leftElevatorMotor.set(.3); 
+    }
 
-  
-    /**
-     * Set the goal for the elevator PID controller. This must be called periodically.
-     * @param goal
-     */
 
-    public void setPosition(double positionGoal) {
+    // /**
+    //  * Set the goal for the elevator PID controller. This must be called periodically.
+    //  * @param goal
+    //  */
+
+    // public void setPosition(double positionGoal) {
         
-        double pidVal = elevatorPIDController.calculate(getPosition(), positionGoal);
-        double acceleration = (elevatorPIDController.getSetpoint().velocity - lastSpeed) / (Timer.getFPGATimestamp() - lastTime);
+    //     double pidVal = elevatorPIDController.calculate(getPosition(), positionGoal);
+    //     double acceleration = (elevatorPIDController.getSetpoint().velocity - lastSpeed) / (Timer.getFPGATimestamp() - lastTime);
 
-        double motorVoltsOutput = pidVal + elevatorKF; // Arbitrary FeedForward
-
-
-        // TODO Check signs on these
-        // Motor safety. Might want to add limit switches at some point.
-        if(motorVoltsOutput > 0 && isAtBottom()){
-
-            motorVoltsOutput = 0;
-        }
-        else if(motorVoltsOutput < 0 && isAtTop()){
-
-            motorVoltsOutput = 0;
-        } else {
-
-            setElevatorVolts(motorVoltsOutput);
-        }
-
-        lastSpeed = elevatorPIDController.getSetpoint().velocity;
-        lastTime = Timer.getFPGATimestamp();
-    }
+    //     double motorVoltsOutput = pidVal + elevatorKF; // Arbitrary FeedForward
 
 
-    public double getPositionError() {
-        return elevatorPIDController.getPositionError();
-    }
+    //     // TODO Check signs on these
+    //     // Motor safety. Might want to add limit switches at some point.
+    //     if(motorVoltsOutput > 0 && isAtBottom()){
+
+    //         motorVoltsOutput = 0;
+    //     }
+    //     else if(motorVoltsOutput < 0 && isAtTop()){
+
+    //         motorVoltsOutput = 0;
+    //     } else {
+
+    //         setElevatorVolts(motorVoltsOutput);
+    //     }
+
+    //     lastSpeed = elevatorPIDController.getSetpoint().velocity;
+    //     lastTime = Timer.getFPGATimestamp();
+    // }
+
+
+    // public double getPositionError() {
+    //     return elevatorPIDController.getPositionError();
+    // }
     
-    public boolean isAtGoal() {
-        return elevatorPIDController.atGoal();
-    }
+    // public boolean isAtGoal() {
+    //     return elevatorPIDController.atGoal();
+    // }
 
-    public void setElevatorVolts(double volts) {
-        leftElevatorMotor.setVoltage(volts);
-    }
+    // public void setElevatorVolts(double volts) {
+    //     leftElevatorMotor.setVoltage(volts);
+    // }
 
-    public void disable() {
-        leftElevatorMotor.set(0);
-        rightElevatorMotor.set(0);
-    }
+    // public void disable() {
+    //     leftElevatorMotor.set(0);
+    //     rightElevatorMotor.set(0);
+    // }
 
-    public boolean isAtTop()
-    {
-        var position = encoder.getPosition();
-        return position <= maxHeight; // TODO: Might want to add a fudge factor here for safety?
+    // public boolean isAtTop()
+    // {
+    //     var position = encoder.getPosition();
+    //     return position <= maxHeight; // TODO: Might want to add a fudge factor here for safety?
         
-        //SmartDashboard.putData("elevator", elevatorDrive);
-    }
+    //     //SmartDashboard.putData("elevator", elevatorDrive);
+    // }
 
-    public boolean isAtBottom()
-    {
-        var position = encoder.getPosition();
-        return position >= minHeight; // TODO: Might want to add a fudge factor here for safety?
-    }
+    // public boolean isAtBottom()
+    // {
+    //     var position = encoder.getPosition();
+    //     return position >= minHeight; // TODO: Might want to add a fudge factor here for safety?
+    // }
 
-    public void resetEncoder(double position) {
-        encoder.setPosition(position);
-    }
-    public void resetEncoder() {
-        resetEncoder(0);
-    }
+    // public void resetEncoder(double position) {
+    //     encoder.setPosition(position);
+    // }
+    // public void resetEncoder() {
+    //     resetEncoder(0);
+    // }
 
-    public double getPosition()
-    {
-        return encoder.getPosition() * encoderConversionFactor;
-    }
+    // public double getPosition()
+    // {
+    //     return encoder.getPosition() * encoderConversionFactor;
+    // }
 
-    public double getMaxPosition()
-    {
-        return maxHeight;
-    }
+    // public double getMaxPosition()
+    // {
+    //     return maxHeight;
+    // }
 
-    public void setSpeed(double speed)
-    {
-        if(speed > 0 && isAtBottom()){
+    // public void setSpeed(double speed)
+    // {
+    //     if(speed > 0 && isAtBottom()){
 
-            speed = 0;
-        }
-        else if(speed < 0 && isAtTop()){
+    //         speed = 0;
+    //     }
+    //     else if(speed < 0 && isAtTop()){
 
-            speed = 0;
-        }
+    //         speed = 0;
+    //     }
         
-        leftElevatorMotor.set(speed);
-    }
+    //     leftElevatorMotor.set(speed);
+    // }
+
 }
