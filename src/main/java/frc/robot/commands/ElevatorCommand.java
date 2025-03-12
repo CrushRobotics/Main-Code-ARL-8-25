@@ -5,7 +5,34 @@ import frc.robot.subsystems.CANElevatorSubsystem;
 
 
 public class ElevatorCommand extends Command {
-    private final CANElevatorSubsystem ElevatorSubsystem;
+    public static enum ElevatorDirection {
+        Up,
+        Down
+    }
+    
+    private final CANElevatorSubsystem elevatorSubsystem;
+    private ElevatorDirection direction;
 
+    public ElevatorCommand(CANElevatorSubsystem elevatorSubsystem, ElevatorDirection direction) {
+        this.elevatorSubsystem = elevatorSubsystem;
+        this.direction = direction;
+
+        addRequirements(this.elevatorSubsystem);
+    }
+
+    @Override
+    public void execute() {
+        if (direction == ElevatorDirection.Up) {
+            elevatorSubsystem.raise();
+        } else {
+            elevatorSubsystem.lower();
+        }
+    }
+
+    @Override
+    public void end (boolean isInterrupted) 
+    {
+        elevatorSubsystem.stop();
+    }
     
 }

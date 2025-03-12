@@ -15,8 +15,11 @@ import frc.robot.commands.BlinkCommand;
 import frc.robot.commands.DriveCommand;
 import frc.robot.commands.LimeLightCommand; // Import the file first 
 import frc.robot.commands.RollerCommand;
+import frc.robot.commands.ElevatorCommand.ElevatorDirection;
+import frc.robot.commands.ElevatorCommand;
 import frc.robot.subsystems.CANDriveSubsystem;
 import frc.robot.subsystems.CANRollerSubsystem;
+import frc.robot.subsystems.CANElevatorSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -31,6 +34,7 @@ public class RobotContainer {
   // The robot's subsystems
   private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
   private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
+  private final CANElevatorSubsystem elevatorSubsystem = new CANElevatorSubsystem();
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
@@ -91,6 +95,9 @@ public class RobotContainer {
     driverController.b().onTrue(blinkCommand);
     
     driverController.a().whileTrue(LIMELIGHT);
+
+    driverController.y().whileTrue(new ElevatorCommand(elevatorSubsystem, ElevatorDirection.Up));
+    driverController.x().whileTrue(new ElevatorCommand(elevatorSubsystem, ElevatorDirection.Down));
 
     // Set the default command for the roller subsystem to an instance of
     // RollerCommand with the values provided by the triggers on the operator

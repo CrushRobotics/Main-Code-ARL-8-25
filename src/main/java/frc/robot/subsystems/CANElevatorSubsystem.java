@@ -1,13 +1,12 @@
 package frc.robot.subsystems;
 
-import edu.wpi.first.wpilibj.motorcontrol.Spark;
-
 import com.revrobotics.RelativeEncoder;
-import com.revrobotics.servohub.ServoHub.ResetMode;
 import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -17,17 +16,14 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-// import static frc.robot.Constants.ElevatorConstants.*;
+import frc.robot.Constants.ElevatorConstants;
 
 public class CANElevatorSubsystem extends SubsystemBase {
 
     private SparkMax leftElevatorMotor;
     private SparkMax rightElevatorMotor;
 
-    private SparkMaxConfig leftElevatorConfig;
-    private SparkMaxConfig rightElevatorConfig;
-
-    
+    private SparkMaxConfig config;
 
     private RelativeEncoder encoder;
 
@@ -49,15 +45,18 @@ public class CANElevatorSubsystem extends SubsystemBase {
 
         // elevatorPIDController.setTolerance(elevatorPIDTolerance);
 
-        leftElevatorMotor = new SparkMax(5, MotorType.kBrushless);
-        rightElevatorMotor = new SparkMax(6, MotorType.kBrushless);
+        leftElevatorMotor = new SparkMax(ElevatorConstants.ELEVATOR_LEADER_ID, MotorType.kBrushless);
+        rightElevatorMotor = new SparkMax(ElevatorConstants.ELEVATOR_FOLLOWER_ID, MotorType.kBrushless);
 
-        leftElevatorConfig = new SparkMaxConfig();
-        rightElevatorConfig = new SparkMaxConfig();
+        config = new SparkMaxConfig();
 
-        rightElevatorConfig.follow(leftElevatorMotor, true);
+        config.idleMode(IdleMode.kBrake);
 
-        rightElevatorMotor.configure(rightElevatorConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        leftElevatorMotor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+
+        config.follow(leftElevatorMotor, true);
+
+        rightElevatorMotor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
 
 
         encoder = leftElevatorMotor.getEncoder();
@@ -89,13 +88,24 @@ public class CANElevatorSubsystem extends SubsystemBase {
     {
         // Log dashboard values
         SmartDashboard.putNumber("Elevator Position", encoder.getPosition());
+
+        double currentPosition = encoder.getPosition();
     }
 
     public void raise() 
     {
-        leftElevatorMotor.set(.3); 
+        leftElevatorMotor.set(.1); 
     }
 
+    public void lower() 
+    {
+        leftElevatorMotor.set(-.1);
+    }
+
+    public void stop() 
+    {
+        leftElevatorMotor.setVoltage(0);
+    }
 
     // /**
     //  * Set the goal for the elevator PID controller. This must be called periodically.
