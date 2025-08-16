@@ -1,170 +1,116 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
 package frc.robot.subsystems;
 
-import com.revrobotics.CANSparkMax;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.RelativeEncoder;
-import com.revrobotics.CANSparkLowLevel.MotorType;
 
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
-import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
-import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.math.util.Units;
-import frc.robot.Constants;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.DriveConstants;
 
-import com.kauailabs.navx.frc.AHRS;
-
+// Updated drive class with distance tracking for autonomous
 public class DriveSubsystem extends SubsystemBase {
-    CANSparkMax leftLeader;
-    CANSparkMax rightLeader;
-    CANSparkMax leftFollower;
-    CANSparkMax rightFollower;
+  private final SparkMax leftLeader;
+  private final SparkMax leftFollower;
+  private final SparkMax rightLeader;
+  private final SparkMax rightFollower;
 
-    RelativeEncoder leftEncoder;
-    RelativeEncoder rightEncoder;
+  private final DifferentialDrive drive;
+  private final RelativeEncoder leftEncoder;
+  private final RelativeEncoder rightEncoder;
 
-    DifferentialDrive diffDrive;
-    DifferentialDriveOdometry odometry;
-    DifferentialDriveKinematics kinematics;
+  public DriveSubsystem() {
+    // create brushless motors for drive
+    leftLeader = new SparkMax(DriveConstants.LEFT_LEADER_ID, MotorType.kBrushless);
+    leftFollower = new SparkMax(DriveConstants.LEFT_FOLLOWER_ID, MotorType.kBrushless);
+    rightLeader = new SparkMax(DriveConstants.RIGHT_LEADER_ID, MotorType.kBrushless);
+    rightFollower = new SparkMax(DriveConstants.RIGHT_FOLLOWER_ID, MotorType.kBrushless);
 
-    AHRS ahrs;
+    // Get encoders from the motors
+    leftEncoder = leftLeader.getEncoder();
+    rightEncoder = rightLeader.getEncoder();
 
-    Rotation2d rotation2d;
-    private boolean isDrivingDistance;
-    private double driveDistanceTarget;
+    // set up differential drive class
+    drive = new DifferentialDrive(leftLeader, rightLeader);
 
-    public DriveSubsystem() { 
-        leftLeader = new CANSparkMax(11, MotorType.kBrushless);
-        rightLeader = new CANSparkMax(02, MotorType.kBrushless);
+    // Set can timeout
+    leftLeader.setCANTimeout(250);
+    rightLeader.setCANTimeout(250);
+    leftFollower.setCANTimeout(250);
+    rightFollower.setCANTimeout(250);
 
-        leftFollower = new CANSparkMax(12, MotorType.kBrushless);
-        rightFollower = new CANSparkMax(01, MotorType.kBrushless);
+    // Create motor configuration
+    SparkMaxConfig config = new SparkMaxConfig();
+    config.voltageCompensation(12);
+    config.smartCurrentLimit(DriveConstants.DRIVE_MOTOR_CURRENT_LIMIT);
 
-        leftLeader.restoreFactoryDefaults();
-        leftFollower.restoreFactoryDefaults();
-        rightLeader.restoreFactoryDefaults();
-        rightFollower.restoreFactoryDefaults();
+    // Configure followers
+    config.follow(leftLeader);
+    leftFollower.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    config.follow(rightLeader);
+    rightFollower.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
-        leftLeader.setInverted(false);
-        leftFollower.setInverted(false);
-        rightLeader.setInverted(true);
-        rightFollower.setInverted(true);
+    // Configure leaders
+    config.disableFollowerMode();
+    rightLeader.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    config.inverted(true);
+    leftLeader.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
-        leftFollower.follow(leftLeader);
-        rightFollower.follow(rightLeader);
-
-        leftEncoder = leftLeader.getEncoder();
-        rightEncoder = rightLeader.getEncoder();
-        
-        diffDrive = new DifferentialDrive(leftLeader, rightLeader);
-
-        // FIXED: Use the constant from Constants.java instead of hardcoded value
-        double conversionFactor = Constants.DriveConstants.encoderConversionFactor;
-        leftEncoder.setPositionConversionFactor(conversionFactor);
-        rightEncoder.setPositionConversionFactor(conversionFactor);
-        
-        leftEncoder.setPosition(0);
-        rightEncoder.setPosition(0);
-
-        ahrs = new AHRS();
-        
-        // ADDED: Call init() to set up odometry
-        init();
-    } 
-
-    public void init() {    
-        rotation2d = new Rotation2d(Units.degreesToRadians(ahrs.getAngle()));
-
-        kinematics =
-            new DifferentialDriveKinematics(Units.inchesToMeters(27.0));
-
-        odometry = new DifferentialDriveOdometry(
-            rotation2d,
-            0, 0,
-            new Pose2d(0, 0, new Rotation2d()));
-    }
-
-    @Override
-    public void periodic() {
-        // Update dashboard with encoder measurements
-        SmartDashboard.putNumber("Left Drive Encoder", leftEncoder.getPosition());
-        SmartDashboard.putNumber("Right Drive Encoder", rightEncoder.getPosition());
-
-        // Update dashboard with angle
-        SmartDashboard.putNumber("Angle", ahrs.getAngle());
-        
-        if (isDrivingDistance)
-        {
-            // Check if we've moved our intended distance
-            if (rightEncoder.getPosition() >= driveDistanceTarget)
-            {
-                diffDrive.arcadeDrive(0, 0);
-                isDrivingDistance = false;
-            }
-        }
-    }
+    // Set encoder conversion factors to get distance in meters
+    double wheelCircumferenceMeters = Math.PI * DriveConstants.WHEEL_DIAMETER_METERS;
+    double distancePerRotation = wheelCircumferenceMeters / DriveConstants.GEAR_RATIO;
     
-    public void drive(double leftOutput, double rightOutput) {
-        diffDrive.tankDrive(leftOutput, rightOutput);
-    }
-
-    public void arcadeDrive(double leftOutput, double rightOutput) {
-        diffDrive.arcadeDrive(leftOutput, rightOutput);
-    }
-
-    public Pose2d getPose() {
-        return odometry.getPoseMeters();
-    }
-
-    public void resetPose() {
-        odometry.resetPosition(rotation2d, 0, 0, new Pose2d(0, 0, new Rotation2d()));
-    }
-
-    public ChassisSpeeds getCurrentSpeeds() {
-        var leftVelocity = leftEncoder.getVelocity();
-        var rightVelocity = rightEncoder.getVelocity();
-
-        var wheelSpeeds = new DifferentialDriveWheelSpeeds(leftVelocity, rightVelocity);
-
-        return kinematics.toChassisSpeeds(wheelSpeeds);
-    }
-
-    // Distance in meters
-    public void driveDistance (double distance)
-    {
-        isDrivingDistance = true;
-        driveDistanceTarget = distance;
-        diffDrive.arcadeDrive(distance > 0 ? 0.2 : -0.2, 0);
-    }
-
-    // ========== ADDED METHODS FOR APRILTAG AUTONOMOUS ==========
+    leftEncoder.setPositionConversionFactor(distancePerRotation);
+    rightEncoder.setPositionConversionFactor(distancePerRotation);
     
-    /**
-     * Reset both drive encoders to zero
-     * Called at start of autonomous
-     */
-    public void resetEncoders() {
-        leftEncoder.setPosition(0);
-        rightEncoder.setPosition(0);
-    }
-    
-    /**
-     * Get average distance traveled by both sides
-     * Used by autonomous to track how far robot has moved
-     */
-    public double getAverageDistanceMeters() {
-        return (leftEncoder.getPosition() + rightEncoder.getPosition()) / 2.0;
-    }
-    
-    /**
-     * Stop all drive motors immediately
-     * Used when autonomous command ends
-     */
-    public void stop() {
-        diffDrive.stopMotor();
-    }
+    // Reset encoders
+    resetEncoders();
+  }
+
+  @Override
+  public void periodic() {
+  }
+
+  // Sets the speed of the drive motors (for teleop)
+  public void driveArcade(double xSpeed, double zRotation) {
+    drive.arcadeDrive(xSpeed, zRotation * 0.50);
+  }
+
+  // Sets the speed of the drive motors (for autonomous - no rotation scaling)
+  public void arcadeDrive(double xSpeed, double zRotation) {
+    drive.arcadeDrive(xSpeed, zRotation);
+  }
+
+  // Stop the drive motors
+  public void stop() {
+    drive.stopMotor();
+  }
+
+  // Reset encoders to zero
+  public void resetEncoders() {
+    leftEncoder.setPosition(0);
+    rightEncoder.setPosition(0);
+  }
+
+  // Get average distance traveled in meters
+  public double getAverageDistanceMeters() {
+    return (leftEncoder.getPosition() + rightEncoder.getPosition()) / 2.0;
+  }
+
+  // Get left encoder distance
+  public double getLeftDistanceMeters() {
+    return leftEncoder.getPosition();
+  }
+
+  // Get right encoder distance
+  public double getRightDistanceMeters() {
+    return rightEncoder.getPosition();
+  }
 }

@@ -1,154 +1,129 @@
 package frc.robot.subsystems;
 
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.PIDSubsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.RelativeEncoder;
-import com.revrobotics.CANSparkBase.IdleMode;
+import frc.robot.Constants.ArmConstants;
 
 public class ArmSubsystem extends SubsystemBase {
+    private final SparkMax armMotor;
+    private final RelativeEncoder armEncoder;
+    private final PIDController pidController;
     
-    private final CANSparkMax armLeader;
-    private final CANSparkMax armFollower;
-    private final RelativeEncoder encoder;
-    private double target;
-    private boolean autoPosition;
+    private double targetAngle = 0.0;
+    
+    // PID Constants - tune these for your robot
+    private static final double kP = 0.05;
+    private static final double kI = 0.0;
+    private static final double kD = 0.001;
+    
+    // Conversion factor from encoder rotations to degrees
+    private static final double GEAR_RATIO = 100.0; // Adjust based on your gearbox
+    private static final double DEGREES_PER_ROTATION = 360.0 / GEAR_RATIO;
 
-    public ArmSubsystem()
-    {
-        //super(new PIDController(0, 0, 0));
+    public ArmSubsystem() {
+        armMotor = new SparkMax(ArmConstants.ARM_MOTOR_ID, MotorType.kBrushless);
+        armEncoder = armMotor.getEncoder();
         
-        armLeader = new CANSparkMax(03, MotorType.kBrushless);
-        armFollower = new CANSparkMax(13, MotorType.kBrushless);
-
-        // Reset to factory defaults
-        armLeader.restoreFactoryDefaults();
-        armFollower.restoreFactoryDefaults();
-
-        armFollower.setInverted(true);
-
-        // Setup brake mode to keep them from coasting
-        armLeader.setIdleMode(IdleMode.kBrake);
-        armFollower.setIdleMode(IdleMode.kBrake);
-
-        encoder = armLeader.getEncoder();
-        encoder.setPosition(0);
-
-        autoPosition = false;
-    }
-
-    @Override
-    public void periodic()
-    {
-        double currentPosition = encoder.getPosition();
-        SmartDashboard.putNumber("arm encoder", encoder.getPosition());
-        double targetSpeed = 0.1;
-        double absDiff = Math.abs(currentPosition - target);
-
-        if (autoPosition) {
-            /* 
-            if (Math.abs(currentPosition - target) < 5)
-            {
-                targetSpeed = -0.2;
-            }
-            */
-
-            if (currentPosition < target && absDiff > 0.5)
-            {
-                armLeader.set(targetSpeed);
-                armFollower.set(targetSpeed);
-            } 
-            else if (currentPosition > target && absDiff > 0.5)
-            {
-                armLeader.set(targetSpeed * -1.0);
-                armFollower.set(targetSpeed * -1.0);
-            }
-            else 
-            {
-                armLeader.set(0);
-                armFollower.set(0);
-            }
-        }
-    }
-
-    public double getPosition ()
-    {
-        return encoder.getPosition();
-    }
-
-    // Set target for PID control. This target value maps to an encoder
-    // position.
-    public void setTarget(double target)
-    {
-       autoPosition = true;
-       this.target = target; 
-    }
-
-    public void stop()
-    {
-        armLeader.setVoltage(0);
-        armFollower.setVoltage(0);
-    }
-
-    public void moveToShootPosition()
-    {
-        setTarget(frc.robot.Constants.ArmConstants.SHOOTING_POSITION);
-    }
-
-    public void moveUp()
-    {
-        if(isInUpperBound()) {    
-            armLeader.set(0.1);
-            armFollower.set(0.1);
-            
-        }
-        else{
-            armLeader.set(0);
-            armFollower.set(0);
-        }
-        autoPosition = false;
-    }
-
-    public void moveDown()
-    {   
-        if(isInLowerBound()) {
-            armLeader.set(-0.1);
-            armFollower.set(-0.1);
-            
-        }
-        else{
-            armLeader.set(0);
-            armFollower.set(0);
-        }
-        autoPosition = false;
-    }
-
-    public boolean isInUpperBound() {
+        // Configure motor
+        SparkMaxConfig config = new SparkMaxConfig();
+        config.voltageCompensation(12);
+        config.smartCurrentLimit(30);
+        armMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         
-        return encoder.getPosition() < frc.robot.Constants.ArmConstants.MAX_BOUND;
-
-    }
-
-    public boolean isInLowerBound() {
-        return encoder.getPosition() > frc.robot.Constants.ArmConstants.MIN_BOUND;
-    }
-
-    /* 
-    @Override
-    protected void useOutput(double output, double setpoint) {
-        // Use voltage from PID controller
-        armLeader.setVoltage(output);
+        // Set encoder conversion factor
+        armEncoder.setPositionConversionFactor(DEGREES_PER_ROTATION);
+        
+        // Initialize PID controller
+        pidController = new PIDController(kP, kI, kD);
+        pidController.setTolerance(2.0); // 2 degree tolerance
+        
+        // Reset encoder (assume starting position is 0 degrees)
+        armEncoder.setPosition(0);
     }
 
     @Override
-    protected double getMeasurement() {
-        // Return position measurement from encoder. We're not 
-        // currently doing any calculations to change the units.
-        return encoder.getPosition();
+    public void periodic() {
+        // Calculate PID output
+        double pidOutput = pidController.calculate(getAngle(), targetAngle);
+        
+        // Apply safety bounds
+        double currentAngle = getAngle();
+        if ((currentAngle <= ArmConstants.MIN_BOUND && pidOutput < 0) ||
+            (currentAngle >= ArmConstants.MAX_BOUND && pidOutput > 0)) {
+            pidOutput = 0;
+        }
+        
+        // Set motor output
+        armMotor.set(pidOutput);
+        
+        // Update dashboard
+        SmartDashboard.putNumber("Arm Angle", currentAngle);
+        SmartDashboard.putNumber("Arm Target", targetAngle);
+        SmartDashboard.putBoolean("Arm At Target", atTarget());
     }
-    */
+
+    /**
+     * Set the target angle for the arm
+     * @param angle Target angle in degrees
+     */
+    public void setTarget(double angle) {
+        // Clamp angle to safe bounds
+        targetAngle = Math.max(ArmConstants.MIN_BOUND, 
+                      Math.min(ArmConstants.MAX_BOUND, angle));
+    }
+
+    /**
+     * Get the current arm angle
+     * @return Current angle in degrees
+     */
+    public double getAngle() {
+        return armEncoder.getPosition();
+    }
+
+    /**
+     * Check if the arm is at the target position
+     * @return True if at target within tolerance
+     */
+    public boolean atTarget() {
+        return pidController.atSetpoint();
+    }
+
+    /**
+     * Manually set arm speed (for manual control)
+     * @param speed Speed from -1.0 to 1.0
+     */
+    public void setSpeed(double speed) {
+        double currentAngle = getAngle();
+        
+        // Safety bounds
+        if ((currentAngle <= ArmConstants.MIN_BOUND && speed < 0) ||
+            (currentAngle >= ArmConstants.MAX_BOUND && speed > 0)) {
+            speed = 0;
+        }
+        
+        armMotor.set(speed);
+    }
+
+    /**
+     * Stop the arm motor
+     */
+    public void stop() {
+        armMotor.stopMotor();
+    }
+
+    /**
+     * Reset the encoder to a specific angle
+     * @param angle Angle in degrees to reset to
+     */
+    public void resetEncoder(double angle) {
+        armEncoder.setPosition(angle);
+    }
 }

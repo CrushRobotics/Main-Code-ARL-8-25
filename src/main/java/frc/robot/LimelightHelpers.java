@@ -750,7 +750,20 @@ public class LimelightHelpers {
         }
         return false;
     }
+/**
+ * Sets the camera mode to processor (vision processing mode)
+ * @param limelightName Name of the Limelight camera
+ */
+public static void setCameraMode_Processor(String limelightName) {
+    setLimelightNTDouble(limelightName, "camMode", 0);
+}
 
+/**
+ * Sets the camera mode to driver camera (no vision processing)
+ * @param limelightName Name of the Limelight camera
+ */
+public static void setCameraMode_Driver(String limelightName) {
+    setLimelightNTDouble(limelightName, "camMode", 1);
     /**
      * Parses Limelight's JSON results dump into a LimelightResults Object
      */

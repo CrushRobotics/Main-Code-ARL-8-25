@@ -15,7 +15,7 @@ import frc.robot.subsystems.ShooterSubsystem;
 // ADDED: Import for alliance detection
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-
+import frc.robot.Constants;
 
 public class AprilTagAutonomous {
     
@@ -250,8 +250,8 @@ public class AprilTagAutonomous {
                         double armAngle = calculateOptimalArmAngle(distance, height);
                         
                         // Clamp to safe bounds
-                        armAngle = Math.max(frc.robot.Constants.ArmConstants.MIN_BOUND,
-                                  Math.min(frc.robot.Constants.ArmConstants.MAX_BOUND, armAngle));
+                        armAngle = Math.max(Constants.ArmConstants.MIN_BOUND,
+                                  Math.min(Constants.ArmConstants.MAX_BOUND, armAngle));
                         
                         armSubsystem.setTarget(armAngle);
                         
@@ -261,7 +261,7 @@ public class AprilTagAutonomous {
                     }
                 } else {
                     // Fallback to default angle
-                    armSubsystem.setTarget(frc.robot.Constants.ArmConstants.SHOOTING_POSITION);
+                    armSubsystem.setTarget(Constants.ArmConstants.SHOOTING_POSITION);
                 }
             }, armSubsystem)
         );
@@ -298,7 +298,7 @@ public class AprilTagAutonomous {
             // Stop and prepare to score
             Commands.runOnce(() -> {
                 driveSubsystem.stop();
-                armSubsystem.setTarget(frc.robot.Constants.ArmConstants.SHOOTING_POSITION);
+                armSubsystem.setTarget(Constants.ArmConstants.SHOOTING_POSITION);
             }),
             
             // Wait and score
@@ -356,7 +356,7 @@ public class AprilTagAutonomous {
         // You'll need to tune these constants for your specific robot
         
         // Basic angle calculation based on distance
-        double baseAngle = frc.robot.Constants.ArmConstants.SHOOTING_POSITION;
+        double baseAngle = Constants.ArmConstants.SHOOTING_POSITION;
         
         // Adjust based on distance
         if (distance < 1.5) {
