@@ -4,110 +4,129 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import frc.robot.Constants.OperatorConstants;
+import frc.robot.commands.Autos;
+import frc.robot.commands.ClimberClimbCommand;
+import frc.robot.commands.ClimberLowerCommand;
+import frc.robot.commands.ExampleCommand;
+import frc.robot.commands.FeedShooterCommand;
+import frc.robot.commands.LowerAndRunIntakeCommand;
+import frc.robot.commands.MoveArmCommand;
+import frc.robot.commands.ShootCommand;
+import frc.robot.commands.ShootingPositionCommand;
+import frc.robot.commands.MoveArmCommand.ArmDirection;
+import frc.robot.commands.ShootingPositionCommand.ArmAngle;
+import frc.robot.subsystems.ArmSubsystem;
+import frc.robot.subsystems.ClimberSubsystem;
+import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.Constants.OperatorConstants;
-import frc.robot.Constants.RollerConstants;
-import frc.robot.commands.AutoCommand;
-import frc.robot.commands.BlinkCommand;
-import frc.robot.commands.DriveCommand;
-import frc.robot.commands.LimeLightCommand; // Import the file first 
-import frc.robot.commands.RollerCommand;
-import frc.robot.subsystems.CANDriveSubsystem;
-import frc.robot.subsystems.CANRollerSubsystem;
+import frc.robot.commands.DefaultDriveCommand;
+import frc.robot.commands.LimelightCommand;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.commands.AprilTagAutonomous;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 
 /**
- * This class is where the bulk of the robot should be declared. Since
- * Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in
- * the {@link Robot}
- * periodic methods (other than the scheduler calls). Instead, the structure of
- * the robot (including
+ * This class is where the bulk of the robot should be declared. Since Command-based is a
+ * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
+ * periodic methods (other than the scheduler calls). Instead, the structure of the robot (including
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
-  // The robot's subsystems
-  private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
-  private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
+  // The robot's subsystems and commands are defined here...
+  private final DriveSubsystem m_driveSubsystem = new DriveSubsystem();
+ // private final DigitalInput limitSwitch = new DigitalInput(8);
+  //private final DigitalInput beamBreak = new DigitalInput(0);
+  private final ArmSubsystem armSubsystem = new ArmSubsystem();
+  private final ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
+  private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
+  //private final IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
 
-  // The driver's controller
-  private final CommandXboxController driverController = new CommandXboxController(
-      OperatorConstants.DRIVER_CONTROLLER_PORT);
-
-  // The autonomous chooser
+  // ADDED: Auto chooser field
   private final SendableChooser<Command> autoChooser = new SendableChooser<>();
 
-  private final BlinkCommand blinkCommand = new BlinkCommand();
-  private final LimeLightCommand LIMELIGHT = new LimeLightCommand(); // Creating a nametag to refer to 
+  // Replace with CommandPS4Controller or CommandJoystick if needed
+  private final CommandXboxController m_driverController =
+      new CommandXboxController(OperatorConstants.kDriverControllerPort);
 
-  /**
-   * The container for the robot. Contains subsystems, OI devices, and commands.
-   */
+  private final CommandXboxController m_armShooterController = 
+      new CommandXboxController(OperatorConstants.kShooterControllerPort);
+
+  /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    // Set up command bindings
-    configureBindings();
 
-    // Set the options to show up in the Dashboard for selecting auto modes. If you
-    // add additional auto modes you can add additional lines here with
-    // autoChooser.addOption
-    autoChooser.setDefaultOption("Autonomous", new AutoCommand(driveSubsystem));
+      //m_driveSubsystem.register();
+      m_driveSubsystem.setDefaultCommand(new DefaultDriveCommand(m_driverController, m_driveSubsystem));
+
+      // ADDED: Configure auto chooser
+      configureAutoChooser();
+
+      // Configure the trigger bindings
+      configureBindings();
   }
 
   /**
-   * Use this method to define your trigger->command mappings. Triggers can be
-   * created via the
-   * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with
-   * an arbitrary
+   * Use this method to define your trigger->command mappings. Triggers can be created via the
+   * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary
    * predicate, or via the named factories in {@link
-   * edu.wpi.first.wpilibj2.command.button.CommandGenericHID}'s subclasses for
-   * {@link
-   * CommandXboxController
-   * Xbox}/{@link edu.wpi.first.wpilibj2.command.button.CommandPS4Controller
-   * PS4} controllers or
-   * {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
+   * edu.wpi.first.wpilibj2.command.button.CommandGenericHID}'s subclasses for {@link
+   * CommandXboxController Xbox}/{@link edu.wpi.first.wpilibj2.command.button.CommandPS4Controller
+   * PS4} controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
    * joysticks}.
    */
   private void configureBindings() {
-    // Set the A button to run the "RollerCommand" command with a fixed
-    // value ejecting the gamepiece while the button is held
+    // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
 
-
-  
-    // Set the default command for the drive subsystem to an instance of the
-    // DriveCommand with the values provided by the joystick axes on the driver
-    // controller. The Y axis of the controller is inverted so that pushing the
-    // stick away from you (a negative value) drives the robot forwards (a positive
-    // value). Similarly for the X axis where we need to flip the value so the
-    // joystick matches the WPILib convention of counter-clockwise positive
-    driveSubsystem.setDefaultCommand(new DriveCommand(
-        () -> -driverController.getLeftY() *
-            (driverController.getHID().getRightBumperButton() ? 1 : 0.5),
-        () -> -driverController.getRightX(),
-        driveSubsystem));
-
-    // Execute the blink command 
-    driverController.b().onTrue(blinkCommand);
-    
-    driverController.a().whileTrue(LIMELIGHT);
-
-    // Set the default command for the roller subsystem to an instance of
-    // RollerCommand with the values provided by the triggers on the operator
-    // controller
-    rollerSubsystem.setDefaultCommand(new RollerCommand(
-        () -> driverController.getRightTriggerAxis(),
-        () -> driverController.getLeftTriggerAxis(),
-        rollerSubsystem));
+    // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
+    // cancelling on release.
+    //m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
+    //m_driverController.a().whileTrue(new LimelightCommand(m_driverController, m_driveSubsystem));
+    m_driverController.leftBumper().whileTrue(new ClimberLowerCommand(climberSubsystem));
+    m_driverController.rightBumper().whileTrue(new ClimberClimbCommand(climberSubsystem));
+ 
+    m_armShooterController.rightBumper().whileTrue(new ShootCommand(shooterSubsystem));
+    //m_armShooterController.a().whileTrue(new ShootingPositionCommand(armSubsystem));
+    m_armShooterController.b().whileTrue(new FeedShooterCommand(shooterSubsystem));
+    m_armShooterController.y().whileTrue(new MoveArmCommand(armSubsystem, ArmDirection.Up));
+    m_armShooterController.x().whileTrue(new MoveArmCommand(armSubsystem, ArmDirection.Down));
+    //m_armShooterController.rightBumper().whileTrue(new LowerAndRunIntakeCommand(intakeSubsystem));
+    m_armShooterController.povLeft().whileTrue(new ShootingPositionCommand(armSubsystem, ArmAngle.ShootAngle));
+    m_armShooterController.povRight().whileTrue(new ShootingPositionCommand(armSubsystem, ArmAngle.SourceAngle));
   }
 
+  // ADDED: Auto chooser configuration method
+  private void configureAutoChooser() {
+    // AprilTag autonomous (primary option)
+    autoChooser.setDefaultOption("AprilTag Ranking Point Auto", 
+        AprilTagAutonomous.aprilTagRankingPointAuto(m_driveSubsystem, armSubsystem, shooterSubsystem));
+    
+    // Backup if AprilTags fail
+    autoChooser.addOption("Backup Auto (No Vision)", 
+        AprilTagAutonomous.backupAutoNoVision(m_driveSubsystem, armSubsystem, shooterSubsystem));
+    
+    // Simple mobility
+    autoChooser.addOption("Mobility Only", 
+        Autos.mobilityOnlyAuto(m_driveSubsystem));
+        
+    // Put chooser on dashboard
+    SmartDashboard.putData("Auto Chooser", autoChooser);
+  }
+        
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
    *
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
+    // CHANGED: Return the selected autonomous command instead of hardcoded one
     return autoChooser.getSelected();
   }
 }
