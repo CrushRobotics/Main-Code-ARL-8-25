@@ -24,6 +24,10 @@ public final class Constants {
     public static final int RIGHT_FOLLOWER_ID = 14;
 
     public static final int DRIVE_MOTOR_CURRENT_LIMIT = 60;
+    
+    // Wheel diameter and gear ratio for distance calculations
+    public static final double WHEEL_DIAMETER_METERS = 0.1524; // 6 inches
+    public static final double GEAR_RATIO = 10.71; // Adjust based on your gearbox
   }
 
   public static final class RollerConstants {
@@ -36,5 +40,18 @@ public final class Constants {
   public static final class OperatorConstants {
     public static final int DRIVER_CONTROLLER_PORT = 0;
     public static final int OPERATOR_CONTROLLER_PORT = 1;
+  }
+
+  // Added constants for AprilTag autonomous
+  public static final class ArmConstants {
+    public static final int ARM_MOTOR_ID = 15; // Change to your actual arm motor ID
+    public static final double MIN_BOUND = -45.0; // degrees
+    public static final double MAX_BOUND = 90.0;  // degrees
+    public static final double SHOOTING_POSITION = 30.0; // degrees
+  }
+
+  public static final class ShooterConstants {
+    public static final int SHOOTER_MOTOR_ID = 16; // Change to your actual shooter motor ID
+    public static final double SHOOTER_SPEED = 0.8;
   }
 }
