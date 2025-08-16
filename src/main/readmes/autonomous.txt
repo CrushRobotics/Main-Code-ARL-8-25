@@ -1,0 +1,15 @@
+Here is what we think we might be able to do to make autonomous work.
+
+Use the PathPlanner library and the AutoBuilder.configureRamsete method.
+
+Pass it a drive method that is passed a ChassisSpeeds.
+
+Convert ChassissSpeeds to wheelspeeds using DifferentialDriveKinematics.
+
+Feed wheel speeds into Spark Max PID Controllers.
+
+----------------------
+
+
+Before we can use the PID controllers we'll need to characterize the robot's drive train.
+
