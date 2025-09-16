@@ -1,21 +1,25 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
-import edu.wpi.first.math.controller.ElevatorFeedforward;
-import edu.wpi.first.math.controller.ProfiledPIDController;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
-import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+// import edu.wpi.first.math.controller.ElevatorFeedforward;
+// import edu.wpi.first.math.controller.ProfiledPIDController;
+// import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
+// import edu.wpi.first.math.util.Units;
+// import edu.wpi.first.wpilibj.Timer;
+// import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Constants.ElevatorConstants;
 
 public class CANElevatorSubsystem extends SubsystemBase {
@@ -23,83 +27,83 @@ public class CANElevatorSubsystem extends SubsystemBase {
     private SparkMax leftElevatorMotor;
     private SparkMax rightElevatorMotor;
 
-    private SparkMaxConfig config;
+    private SparkMaxConfig leftconfig;
+    private SparkMaxConfig rightconfig;
 
-    private RelativeEncoder encoder;
+    private RelativeEncoder leftEncoder;
+    private RelativeEncoder rightEncoder;
+    private final SparkClosedLoopController pidLeftElevatorMotor;
 
-    private Constraints elevatorProfileConstraints;
-    private ProfiledPIDController elevatorPIDController;
+    // private Constraints elevatorProfileConstraints;
+    // private ProfiledPIDController elevatorPIDController;
 
-    private double lastSpeed = 0;
-    private double lastTime = Timer.getFPGATimestamp(); 
+    // private double lastSpeed = 0;
+    // private double lastTime = Timer.getFPGATimestamp(); 
     
-    private final double minHeight = -10;
-    private final double maxHeight = -140; // This is the highest it can possibly go, about 45 inches. We might want to change this to a smaller value for safety's sake?
+   //  private final double minHeight = -10;
+    // private final double maxHeight = -140; // This is the highest it can possibly go, about 45 inches. We might want to change this to a smaller value for safety's sake?
 
     // ElevatorFeedforward feedforward = new ElevatorFeedforward(elevatorKS, elevatorKG, elevatorKV);
 
     public CANElevatorSubsystem() {
 
-        // elevatorProfileConstraints = new Constraints(elevatorMaxVel, elevatorMaxAccel);
-        // elevatorPIDController = new ProfiledPIDController(elevatorKP, elevatorKI, elevatorKD, elevatorProfileConstraints);
-
-        // elevatorPIDController.setTolerance(elevatorPIDTolerance);
-
         leftElevatorMotor = new SparkMax(ElevatorConstants.ELEVATOR_LEADER_ID, MotorType.kBrushless);
         rightElevatorMotor = new SparkMax(ElevatorConstants.ELEVATOR_FOLLOWER_ID, MotorType.kBrushless);
+        
+        pidLeftElevatorMotor = leftElevatorMotor.getClosedLoopController();
+        leftconfig = new SparkMaxConfig();
+        rightconfig = new SparkMaxConfig();
 
-        config = new SparkMaxConfig();
+        leftconfig.idleMode(IdleMode.kBrake);
+        rightconfig.idleMode(IdleMode.kBrake);
 
-        config.idleMode(IdleMode.kBrake);
-
-        leftElevatorMotor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
-
-        config.follow(leftElevatorMotor, true);
-
-        rightElevatorMotor.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
-
-
-        encoder = leftElevatorMotor.getEncoder();
-
+        //leftElevatorMotor.configure(leftconfig, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
         
 
+        //rightElevatorMotor.configure(rightconfig, ResetMode.kNoResetSafeParameters, PersistMode.kPersistParameters);
+        
+        leftEncoder = leftElevatorMotor.getEncoder();
+
+        leftconfig.closedLoop.feedbackSensor(FeedbackSensor.kPrimaryEncoder).pid(Constants.PIDElevatorConstants.P, Constants.PIDElevatorConstants.I, Constants.PIDElevatorConstants.D);
+
+
+        leftEncoder = leftElevatorMotor.getEncoder();
+        rightEncoder = rightElevatorMotor.getEncoder();
+
+        rightconfig.follow(leftElevatorMotor, true);
         // When the match starts we should assume that the elevator is either at the
         // minimum or the maximum position and reset the encoder accordingly. 
-        encoder.setPosition(0);
+        leftEncoder.setPosition(0); // sets initial encoder position to zero
+        rightEncoder.setPosition(0);
 
-        // We need to set the position conversion factor which says how many meters
-        // the elevator moves with one full rotation of the motor. To do this, we must
-        // know the gear ratio and the diameter of the gear/wheel driving the elevator.
-        /*
-         * gear ratio: 1:27
-         * gear diameter: 22 teeth / 20 for diametral pitch? 
-         * I am unsure if this is what we're looking for
-         * 
-         * 22 teeth
-         * .25 inches per teeth
-         */
-        
-        // encoder.setPositionConversionFactor(1);
-        // leftElevatorMotor.burnFlash();
+        leftElevatorMotor.configure(leftconfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+        rightElevatorMotor.configure(rightconfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+
     }
     
+     public void setMotorPostion(double targetPosition){
+      pidLeftElevatorMotor.setReference(targetPosition, SparkBase.ControlType.kPosition);
+      
+    }
+
     @Override 
     public void periodic()
     {
         // Log dashboard values
-        SmartDashboard.putNumber("Elevator Position", encoder.getPosition());
+        SmartDashboard.putNumber("Elevator Position", leftEncoder.getPosition());
 
-        double currentPosition = encoder.getPosition();
+        double currentleftPosition = leftEncoder.getPosition();
+        double currentrightPosition = rightEncoder.getPosition();
     }
 
     public void raise() 
     {
-        leftElevatorMotor.set(.1); 
+        leftElevatorMotor.set(0.4); // Raise speed. Reduce from 0.9  
     }
 
     public void lower() 
     {
-        leftElevatorMotor.set(-.1);
+        leftElevatorMotor.set(-.3);
     }
 
     public void stop() 
@@ -120,7 +124,7 @@ public class CANElevatorSubsystem extends SubsystemBase {
     //     double motorVoltsOutput = pidVal + elevatorKF; // Arbitrary FeedForward
 
 
-    //     // TODO Check signs on these
+    //     // Check signs on these
     //     // Motor safety. Might want to add limit switches at some point.
     //     if(motorVoltsOutput > 0 && isAtBottom()){
 
@@ -159,7 +163,7 @@ public class CANElevatorSubsystem extends SubsystemBase {
     // public boolean isAtTop()
     // {
     //     var position = encoder.getPosition();
-    //     return position <= maxHeight; // TODO: Might want to add a fudge factor here for safety?
+    //     return position <= maxHeight; // Might want to add a fudge factor here for safety?
         
     //     //SmartDashboard.putData("elevator", elevatorDrive);
     // }
@@ -167,7 +171,7 @@ public class CANElevatorSubsystem extends SubsystemBase {
     // public boolean isAtBottom()
     // {
     //     var position = encoder.getPosition();
-    //     return position >= minHeight; // TODO: Might want to add a fudge factor here for safety?
+    //     return position >= minHeight; // Might want to add a fudge factor here for safety?
     // }
 
     // public void resetEncoder(double position) {

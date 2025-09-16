@@ -12,20 +12,20 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-public class CANArmSubsystem extends SubsystemBase {
-    private final SparkMax armMotor;
+public class CANCoralIntakeSubsystem extends SubsystemBase {
+    public final SparkMax coralIntakeMotor;
     private final SparkMaxConfig config;
     private final RelativeEncoder encoder;
 
-    public CANArmSubsystem() {
-        armMotor = new SparkMax(3, MotorType.kBrushless); // placeholder ID
+    public CANCoralIntakeSubsystem() {
+        coralIntakeMotor = new SparkMax(16, MotorType.kBrushless); // placeholder ID
         
         config = new SparkMaxConfig();
 
         config.idleMode(IdleMode.kBrake);
-        armMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        coralIntakeMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
-        encoder = armMotor.getEncoder();
+        encoder = coralIntakeMotor.getEncoder();
     }
 
     @Override
@@ -34,17 +34,19 @@ public class CANArmSubsystem extends SubsystemBase {
     }
 
     public void right() {
-        armMotor.set(0.3);
+        coralIntakeMotor.set(0.5);
     }
     public void moveToShootPosition(){
         //setTarget(frc.robot.Constants.ArmConstants.SHOOTING_POSITION);
     }
 
     public void left() {
-        armMotor.set(-0.3);
+        coralIntakeMotor.set(-0.5);
     }
     public void stop(){
-        armMotor.setVoltage(0);
+        coralIntakeMotor.setVoltage(0);
+    }
+    public void runIntake(double speed) {
+        coralIntakeMotor.set(speed);
     }
 }
-

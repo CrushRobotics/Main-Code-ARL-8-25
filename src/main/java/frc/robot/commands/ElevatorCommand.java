@@ -22,11 +22,22 @@ public class ElevatorCommand extends Command {
 
     @Override
     public void execute() {
-        if (direction == ElevatorDirection.Up) {
-            elevatorSubsystem.raise();
-        } else {
-            elevatorSubsystem.lower();
-        }
+
+        // switch (direction) {
+           // case Up:
+            //elevatorSubsystem.setMotorPostion(8); /// DETERMINE ENCODER VALUES
+              //  break;
+            //case Down:
+            //elevatorSubsystem.setMotorPostion(0.2);
+            //default:
+
+              //  break;
+        // }
+         if (direction == ElevatorDirection.Up) {
+             elevatorSubsystem.raise();
+         } else {
+             elevatorSubsystem.lower();
+         }
     }
 
     @Override
