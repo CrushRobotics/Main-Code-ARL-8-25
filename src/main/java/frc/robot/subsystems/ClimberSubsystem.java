@@ -1,15 +1,23 @@
 package frc.robot.subsystems;
 
+<<<<<<< HEAD
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.RelativeEncoder;
 // import com.revrobotics.spark.SparkBase.IdleMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+=======
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkLowLevel.MotorType;
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class ClimberSubsystem extends SubsystemBase {
     
+<<<<<<< HEAD
     private SparkMax leftClimber;
     private SparkMax rightClimber;
 
@@ -28,6 +36,25 @@ public class ClimberSubsystem extends SubsystemBase {
         
         //leftClimber.setIdleMode(IdleMode.kBrake);
         // rightClimber.setIdleMode(IdleMode.kBrake);
+=======
+    private CANSparkMax leftClimber;
+    private CANSparkMax rightClimber;
+
+    RelativeEncoder leftEncoder;
+    RelativeEncoder rightEncoder;
+
+    public ClimberSubsystem() {
+        leftClimber = new CANSparkMax(04, MotorType.kBrushless);
+        rightClimber = new CANSparkMax(14, MotorType.kBrushless);
+
+        leftClimber.restoreFactoryDefaults();
+        rightClimber.restoreFactoryDefaults();
+
+        leftClimber.setInverted(true);
+        
+        leftClimber.setIdleMode(IdleMode.kBrake);
+        rightClimber.setIdleMode(IdleMode.kBrake);
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
 
         leftEncoder = leftClimber.getEncoder();
         rightEncoder = rightClimber.getEncoder();
@@ -71,7 +98,13 @@ public class ClimberSubsystem extends SubsystemBase {
     public boolean isInUpperBound() {
         
         return leftEncoder.getPosition() < frc.robot.Constants.ClimberConstants.MAX_BOUND;
+<<<<<<< HEAD
     }
+=======
+
+    }
+
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
     public boolean isInLowerBound() {
         return leftEncoder.getPosition() > frc.robot.Constants.ClimberConstants.MIN_BOUND;
     }

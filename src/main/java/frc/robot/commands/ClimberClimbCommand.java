@@ -24,4 +24,8 @@ public class ClimberClimbCommand extends Command {
     public void end(boolean isInterrupted) {
         climberSubsystem.stop();
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235

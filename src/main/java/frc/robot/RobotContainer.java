@@ -16,6 +16,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 // import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
@@ -23,8 +24,23 @@ import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+<<<<<<< HEAD
 // import frc.robot.Constants.RollerConstants;
 import frc.robot.commands.AutoCommand;
+=======
+import frc.robot.Constants.RollerConstants;
+import frc.robot.commands.AprilTagAutonomous;
+import frc.robot.commands.AutoCommand;
+import frc.robot.commands.BlinkCommand;
+import frc.robot.commands.DriveCommand;
+import frc.robot.commands.LimeLightCommand;
+import frc.robot.commands.RollerCommand;
+import frc.robot.commands.ShootCommand;
+import frc.robot.subsystems.DriveSubsystem; // Updated import
+import frc.robot.subsystems.CANRollerSubsystem;
+import frc.robot.subsystems.ArmSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
 
 // import frc.robot.commands.BlinkCommand;
 // import frc.robot.commands.LimeLightCommand; // Import the file first 
@@ -68,6 +84,7 @@ public class RobotContainer {
   private final CANBus kCANBus = new CANBus();
 
   // The robot's subsystems
+<<<<<<< HEAD
   private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
   private final CANAlgaeSubsystem algaeSubsystem = new CANAlgaeSubsystem();
   private final CANElevatorSubsystem elevatorSubsystem = new CANElevatorSubsystem();
@@ -81,10 +98,20 @@ public class RobotContainer {
   // private final ClimberClimbCommand coralIntakeSubsystem = new ClimberClimbCommand();
   //private final ClimberLowerCommand coralIntakeSubsystem = new ClimberLowerCommand();
   private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
+=======
+  private final DriveSubsystem driveSubsystem = new DriveSubsystem(); // Updated to new subsystem
+  private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
+  private final ArmSubsystem armSubsystem = new ArmSubsystem(); // Added
+  private final ShooterSubsystem shooterSubsystem = new ShooterSubsystem(); // Added
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
       OperatorConstants.DRIVER_CONTROLLER_PORT);
+  
+  // Optional operator controller for arm/shooter control
+  private final CommandXboxController operatorController = new CommandXboxController(
+      OperatorConstants.OPERATOR_CONTROLLER_PORT);
 
   private final CommandXboxController operatorController = new CommandXboxController(OperatorConstants.OPERATOR_CONTROLLER_PORT);
   // The autonomous chooser
@@ -96,11 +123,16 @@ public class RobotContainer {
   public final TalonFX rightLeader = new TalonFX(7, kCANBus);
   public final TalonFX rightFollower = new TalonFX(6, kCANBus);
 
+<<<<<<< HEAD
   //private final BlinkCommand blinkCommand = new BlinkCommand();
 
   
   // private final LimeLightCommand LIMELIGHT = new LimeLightCommand(); // Creating a nametag to refer to 
  //  private final AlgaeCommand algae = new AlgaeCommand();
+=======
+  private final BlinkCommand blinkCommand = new BlinkCommand();
+  private final LimeLightCommand LIMELIGHT = new LimeLightCommand();
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -155,27 +187,22 @@ public class RobotContainer {
     leftFollower.setControl(new Follower(8, false));
     rightFollower.setControl(new Follower(7, false));
 
-    // Set the options to show up in the Dashboard for selecting auto modes. If you
-    // add additional auto modes you can add additional lines here with
-    // autoChooser.addOption
-    autoChooser.setDefaultOption("Autonomous", new AutoCommand(driveSubsystem));
+    // Set the options to show up in the Dashboard for selecting auto modes
+    autoChooser.setDefaultOption("Simple Auto", new AutoCommand(driveSubsystem));
+    autoChooser.addOption("AprilTag Auto", 
+        AprilTagAutonomous.aprilTagRankingPointAuto(driveSubsystem, armSubsystem, shooterSubsystem));
+    autoChooser.addOption("Backup Auto (No Vision)", 
+        AprilTagAutonomous.backupAutoNoVision(driveSubsystem, armSubsystem, shooterSubsystem));
+    
+    // Put the chooser on the dashboard
+    SmartDashboard.putData("Auto Chooser", autoChooser);
   }
 
   /**
-   * Use this method to define your trigger->command mappings. Triggers can be
-   * created via the
-   * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with
-   * an arbitrary
-   * predicate, or via the named factories in {@link
-   * edu.wpi.first.wpilibj2.command.button.CommandGenericHID}'s subclasses for
-   * {@link
-   * CommandXboxController
-   * Xbox}/{@link edu.wpi.first.wpilibj2.command.button.CommandPS4Controller
-   * PS4} controllers or
-   * {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
-   * joysticks}.
+   * Use this method to define your trigger->command mappings.
    */
   private void configureBindings() {
+<<<<<<< HEAD
   
     // OPERATOR CONTROLLER
     
@@ -246,6 +273,66 @@ public class RobotContainer {
         System.out.println("=== TEST DONE ===");
     }));
      
+=======
+    // Set the default command for the drive subsystem to an instance of the
+    // DriveCommand with the values provided by the joystick axes on the driver
+    // controller. The Y axis of the controller is inverted so that pushing the
+    // stick away from you (a negative value) drives the robot forwards (a positive
+    // value). Similarly for the X axis where we need to flip the value so the
+    // joystick matches the WPILib convention of counter-clockwise positive
+    driveSubsystem.setDefaultCommand(new DriveCommand(
+        () -> -driverController.getLeftY() *
+            (driverController.getHID().getRightBumperButton() ? 1 : 0.5),
+        () -> -driverController.getRightX(),
+        driveSubsystem));
+
+    // Execute the blink command 
+    driverController.b().onTrue(blinkCommand);
+    
+    // LimeLight command
+    driverController.a().whileTrue(LIMELIGHT);
+
+    // Set the default command for the roller subsystem
+    rollerSubsystem.setDefaultCommand(new RollerCommand(
+        () -> driverController.getRightTriggerAxis(),
+        () -> driverController.getLeftTriggerAxis(),
+        rollerSubsystem));
+
+    // DRIVER CONTROLLER BINDINGS
+    // Manual shoot command (X button)
+    driverController.x().whileTrue(new ShootCommand(shooterSubsystem));
+    
+    // Manual arm control with D-pad (override automatic positioning)
+    driverController.povUp().whileTrue(
+        armSubsystem.run(() -> armSubsystem.setSpeed(0.3))
+    );
+    driverController.povDown().whileTrue(
+        armSubsystem.run(() -> armSubsystem.setSpeed(-0.3))
+    );
+
+    // OPERATOR CONTROLLER BINDINGS (if you want separate arm/shooter control)
+    // Preset arm positions
+    operatorController.a().onTrue(
+        armSubsystem.runOnce(() -> armSubsystem.setTarget(0)) // Home position
+    );
+    operatorController.b().onTrue(
+        armSubsystem.runOnce(() -> armSubsystem.setTarget(Constants.ArmConstants.SHOOTING_POSITION)) // Shooting position
+    );
+    operatorController.y().onTrue(
+        armSubsystem.runOnce(() -> armSubsystem.setTarget(45)) // High position
+    );
+
+    // Shooter control
+    operatorController.rightBumper().whileTrue(new ShootCommand(shooterSubsystem));
+    
+    // Manual arm control with operator joystick
+    operatorController.leftY().negate().onTrue(
+        armSubsystem.run(() -> {
+            double speed = -operatorController.getLeftY() * 0.3;
+            armSubsystem.setSpeed(speed);
+        })
+    );
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
   }
 
   /**
@@ -254,6 +341,7 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
+<<<<<<< HEAD
     // An example command will be run in autonomous
     // return autoChooser.getSelected();
 
@@ -277,5 +365,8 @@ public class RobotContainer {
     }else{
       return false;
     }}, driveSubsystem);
+=======
+    return autoChooser.getSelected();
+>>>>>>> f1e26b2868ddc2c2395ab53f1a100b5108855235
   }
 }
